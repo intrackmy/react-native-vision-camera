@@ -1,0 +1,12 @@
+
+if using x code 14 and above(frame processor)
+https://github.com/rodgomesc/vision-camera-face-detector/issues/28
+https://github.com/mrousavy/react-native-vision-camera/issues/1244
+
+
+
+https://github.com/mrousavy/react-native-vision-camera/issues/195
+if react native version is 0.66 or older, need to replace node_modules/react-native-vision-camera/VisionCamera.podspec 
+
+https://toyboy2.medium.com/xcode-14-3-use-of-bitwise-with-boolean-operands-d4784faf5e73
+-Xcode 14.3 Use of bitwise ‘|’ with boolean operands(Yoga)
