@@ -121,7 +121,7 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
   private val cameraExecutor = Executors.newSingleThreadExecutor()
   internal val takePhotoExecutor = Executors.newSingleThreadExecutor()
   internal val recordVideoExecutor = Executors.newSingleThreadExecutor()
-  internal var coroutineScope = CoroutineScope(Dispatchers.Main)
+  private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
   internal var camera: Camera? = null
   internal var imageCapture: ImageCapture? = null
@@ -235,8 +235,6 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
       override fun onHostResume() {
         hostLifecycleState = Lifecycle.State.RESUMED
         updateLifecycleState()
-        // workaround for https://issuetracker.google.com/issues/147354615, preview must be bound on resume
-        update(propsThatRequireSessionReconfiguration)
       }
       override fun onHostPause() {
         hostLifecycleState = Lifecycle.State.CREATED
@@ -412,21 +410,16 @@ class CameraView(context: Context, private val frameProcessorThread: ExecutorSer
         // User has selected a custom format={}. Use that
         val format = DeviceFormat(format!!)
         Log.i(TAG, "Using custom format - photo: ${format.photoSize}, video: ${format.videoSize} @ $fps FPS")
-        if (video == true) {
-          previewBuilder.setTargetResolution(format.videoSize)
-        } else {
-          previewBuilder.setTargetResolution(format.photoSize)
-        }
+        previewBuilder.setTargetResolution(format.videoSize)
         imageCaptureBuilder.setTargetResolution(format.photoSize)
-        imageAnalysisBuilder.setTargetResolution(format.photoSize)
+        imageAnalysisBuilder.setTargetResolution(format.videoSize)
 
         // TODO: Ability to select resolution exactly depending on format? Just like on iOS...
         when (min(format.videoSize.height, format.videoSize.width)) {
           in 0..480 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.SD))
-          in 480..720 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.HD, FallbackStrategy.lowerQualityThan(Quality.HD)))
-          in 720..1080 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.FHD, FallbackStrategy.lowerQualityThan(Quality.FHD)))
-          in 1080..2160 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.UHD, FallbackStrategy.lowerQualityThan(Quality.UHD)))
-          in 2160..4320 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.HIGHEST, FallbackStrategy.lowerQualityThan(Quality.HIGHEST)))
+          in 480..720 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.HD))
+          in 720..1080 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.FHD))
+          in 1080..2160 -> videoRecorderBuilder.setQualitySelector(QualitySelector.from(Quality.UHD))
         }
 
         fps?.let { fps ->

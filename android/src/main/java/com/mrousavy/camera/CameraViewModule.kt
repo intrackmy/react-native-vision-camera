@@ -7,28 +7,21 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.util.Log
-import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.extensions.ExtensionMode
 import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.QualitySelector
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.*
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.modules.core.PermissionAwareActivity
 import com.facebook.react.modules.core.PermissionListener
-import com.facebook.react.uimanager.UIManagerHelper
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.turbomodule.core.CallInvokerHolderImpl
-import com.mrousavy.camera.CameraView
-import com.mrousavy.camera.ViewNotFoundError
-import java.util.concurrent.ExecutorService
 import com.mrousavy.camera.frameprocessor.FrameProcessorRuntimeManager
 import com.mrousavy.camera.parsers.*
 import com.mrousavy.camera.utils.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.guava.await
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 @ReactModule(name = CameraViewModule.TAG)
@@ -82,12 +75,7 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
     return TAG
   }
 
-  private fun findCameraView(viewId: Int): CameraView {
-    Log.d(TAG, "Finding view $viewId...")
-    val view = if (reactApplicationContext != null) UIManagerHelper.getUIManager(reactApplicationContext, viewId)?.resolveView(viewId) as CameraView? else null
-    Log.d(TAG,  if (reactApplicationContext != null) "Found view $viewId!" else "Couldn't find view $viewId!")
-    return view ?: throw ViewNotFoundError(viewId)
-  }
+  private fun findCameraView(id: Int): CameraView = reactApplicationContext.currentActivity?.findViewById(id) ?: throw ViewNotFoundError(id)
 
   @ReactMethod
   fun takePhoto(viewTag: Int, options: ReadableMap, promise: Promise) {
@@ -181,7 +169,7 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
 
         val cameraDevices: WritableArray = Arguments.createArray()
 
-        manager.cameraIdList.filter{ id -> id.toIntOrNull() != null }.forEach loop@{ id ->
+        manager.cameraIdList.forEach loop@{ id ->
           val cameraSelector = CameraSelector.Builder().byID(id).build()
 
           val characteristics = manager.getCameraCharacteristics(id)
@@ -239,16 +227,6 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
           }
           map.putDouble("neutralZoom", 1.0)
 
-          val supportedVideoResolutions: List<Size>
-          val cameraInfos = cameraSelector.filter(cameraProvider.availableCameraInfos)
-          if (cameraInfos.size > 0) {
-            supportedVideoResolutions = QualitySelector
-              .getSupportedQualities(cameraInfos[0])
-              .map { QualitySelector.getResolution(cameraInfos[0], it)!! }
-          } else {
-            supportedVideoResolutions = emptyList()
-          }
-
           // TODO: Optimize?
           val maxImageOutputSize = cameraConfig.outputFormats
             .flatMap { cameraConfig.getOutputSizes(it).toList() }
@@ -256,6 +234,7 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
 
           val formats = Arguments.createArray()
 
+          // TODO: Get supported video qualities with QualitySelector.getSupportedQualities(...)
           cameraConfig.outputFormats.forEach { formatId ->
             val formatName = parseImageFormat(formatId)
 
@@ -308,12 +287,8 @@ class CameraViewModule(reactContext: ReactApplicationContext) : ReactContextBase
               val format = Arguments.createMap()
               format.putDouble("photoHeight", size.height.toDouble())
               format.putDouble("photoWidth", size.width.toDouble())
-              // since supportedVideoResolutions is sorted from highest resolution to lowest,
-              // videoResolution will be the highest supported video resolution lower than or equal to photo resolution
-              // TODO: Somehow integrate with CamcorderProfileProxy?
-              val videoResolution = supportedVideoResolutions.find { it.width <= size.width && it.height <= size.height }
-              format.putDouble("videoHeight", videoResolution?.height?.toDouble())
-              format.putDouble("videoWidth", videoResolution?.width?.toDouble())
+              format.putDouble("videoHeight", size.height.toDouble()) // TODO: Revisit getAvailableCameraDevices (videoHeight == photoHeight?)
+              format.putDouble("videoWidth", size.width.toDouble()) // TODO: Revisit getAvailableCameraDevices (videoWidth == photoWidth?)
               format.putBoolean("isHighestPhotoQualitySupported", isHighestPhotoQualitySupported)
               format.putInt("maxISO", isoRange?.upper)
               format.putInt("minISO", isoRange?.lower)
