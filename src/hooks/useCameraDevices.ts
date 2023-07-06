@@ -4,7 +4,7 @@ import { sortDevices } from '../utils/FormatFilter';
 import { Camera } from '../Camera';
 import { CameraDevice, LogicalCameraDeviceType, parsePhysicalDeviceTypes, PhysicalCameraDeviceType } from '../CameraDevice';
 
-export type CameraDevices = {
+type CameraDevices = {
   [key in CameraPosition]: CameraDevice | undefined;
 };
 const DefaultCameraDevices: CameraDevices = {

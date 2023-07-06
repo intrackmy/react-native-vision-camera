@@ -22,9 +22,7 @@ suspend fun CameraView.takeSnapshot(options: ReadableMap): WritableMap = corouti
       camera.cameraControl.enableTorch(true).await()
     }
 
-    val bitmap = withContext(coroutineScope.coroutineContext) {
-      previewView.bitmap ?: throw CameraNotReadyError()
-    }
+    val bitmap = this@takeSnapshot.previewView.bitmap ?: throw CameraNotReadyError()
 
     val quality = if (options.hasKey("quality")) options.getInt("quality") else 100
 

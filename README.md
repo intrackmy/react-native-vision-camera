@@ -1,7 +1,3 @@
-<a href="https://margelo.io">
-  <img src="./docs/static/img/banner.svg" width="100%" />
-</a>
-
 <h1 align="center">Vision Camera</h1>
 
 <div align="center">
@@ -30,14 +26,10 @@
   <img align="right" width="35%" src="docs/static/img/example.png">
 </div>
 
-### ‼️‼️‼️‼️‼️ ✨ VisionCamera V3 ‼️‼️‼️‼️‼️
-
-**See [this discussion](https://github.com/mrousavy/react-native-vision-camera/issues/1376) for the latest upcoming version of VisionCamera**
-
 ### Documentation
 
-* [Guides](https://react-native-vision-camera.com/docs/guides)
-* [API](https://react-native-vision-camera.com/docs/api)
+* [Guides](https://mrousavy.github.io/react-native-vision-camera/docs/guides)
+* [API](https://mrousavy.github.io/react-native-vision-camera/docs/api)
 * [Example](./example/)
 
 ### Features
@@ -45,7 +37,7 @@
 * Photo, Video and Snapshot capture
 * Customizable devices and multi-cameras (smoothly zoom out to "fish-eye" camera)
 * Customizable FPS
-* [Frame Processors](https://react-native-vision-camera.com/docs/guides/frame-processors) (JS worklets to run QR-Code scanning, facial recognition, AI object detection, realtime video chats, ...)
+* [Frame Processors](https://mrousavy.github.io/react-native-vision-camera/docs/guides/frame-processors) (JS worklets to run QR-Code scanning, facial recognition, AI object detection, realtime video chats, ...)
 * Smooth zooming (Reanimated)
 * Fast pause and resume
 * HDR & Night modes
@@ -82,4 +74,4 @@ If you're integrating VisionCamera in a production app, consider [funding this p
 
 <br />
 
-#### 🚀 Get started by [setting up permissions](https://react-native-vision-camera.com/docs/guides/)!
+#### 🚀 Get started by [setting up permissions](https://mrousavy.github.io/react-native-vision-camera/docs/guides/)!

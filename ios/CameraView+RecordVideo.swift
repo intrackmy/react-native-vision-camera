@@ -64,8 +64,9 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
 
       let enableAudio = self.audio?.boolValue == true
 
-      let onFinish = { (recordingSession: RecordingSession, status: AVAssetWriter.Status, error: Error?) in
+      let onFinish = { (status: AVAssetWriter.Status, error: Error?) in
         defer {
+          self.recordingSession = nil
           if enableAudio {
             self.audioQueue.async {
               self.deactivateAudioSession()
@@ -77,7 +78,6 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
           }
         }
 
-        self.recordingSession = nil
         self.isRecording = false
         ReactLogger.log(level: .info, message: "RecordingSession finished with status \(status.descriptor).")
 
@@ -90,8 +90,8 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
         } else {
           if status == .completed {
             callback.resolve([
-              "path": recordingSession.url.absoluteString,
-              "duration": recordingSession.duration,
+              "path": self.recordingSession!.url.absoluteString,
+              "duration": self.recordingSession!.duration,
             ])
           } else {
             callback.reject(error: .unknown(message: "AVAssetWriter completed with status: \(status.descriptor)"))
@@ -99,16 +99,14 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
         }
       }
 
-      let recordingSession: RecordingSession
       do {
-        recordingSession = try RecordingSession(url: tempURL,
-                                                fileType: fileType,
-                                                completion: onFinish)
+        self.recordingSession = try RecordingSession(url: tempURL,
+                                                     fileType: fileType,
+                                                     completion: onFinish)
       } catch let error as NSError {
         callback.reject(error: .capture(.createRecorderError(message: nil)), cause: error)
         return
       }
-      self.recordingSession = recordingSession
 
       var videoCodec: AVVideoCodecType?
       if let codecString = options["videoCodec"] as? String {
@@ -124,8 +122,8 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
 
       // get pixel format (420f, 420v, x420)
       let pixelFormat = CMFormatDescriptionGetMediaSubType(videoInput.device.activeFormat.formatDescription)
-      recordingSession.initializeVideoWriter(withSettings: videoSettings,
-                                             pixelFormat: pixelFormat)
+      self.recordingSession!.initializeVideoWriter(withSettings: videoSettings,
+                                                   pixelFormat: pixelFormat)
 
       // Init Audio (optional, async)
       if enableAudio {
@@ -134,15 +132,15 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
 
         if let audioOutput = self.audioOutput,
            let audioSettings = audioOutput.recommendedAudioSettingsForAssetWriter(writingTo: fileType) {
-          recordingSession.initializeAudioWriter(withSettings: audioSettings)
+          self.recordingSession!.initializeAudioWriter(withSettings: audioSettings)
         }
       }
 
       // start recording session with or without audio.
       do {
-        try recordingSession.startAssetWriter()
-      } catch let error as NSError {
-        callback.reject(error: .capture(.createRecorderError(message: "RecordingSession failed to start asset writer.")), cause: error)
+        try self.recordingSession!.start()
+      } catch {
+        callback.reject(error: .capture(.createRecorderError(message: "RecordingSession failed to start writing.")))
         return
       }
       self.isRecording = true
@@ -202,8 +200,8 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
         recordingSession.appendBuffer(sampleBuffer, type: .video, timestamp: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
       case is AVCaptureAudioDataOutput:
         let timestamp = CMSyncConvertTime(CMSampleBufferGetPresentationTimeStamp(sampleBuffer),
-                                          from: audioCaptureSession.masterClock ?? CMClockGetHostTimeClock(),
-                                          to: captureSession.masterClock ?? CMClockGetHostTimeClock())
+                                          from: audioCaptureSession.masterClock!,
+                                          to: captureSession.masterClock!)
         recordingSession.appendBuffer(sampleBuffer, type: .audio, timestamp: timestamp)
       default:
         break
@@ -212,11 +210,11 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
 
     if let frameProcessor = frameProcessorCallback, captureOutput is AVCaptureVideoDataOutput {
       // check if last frame was x nanoseconds ago, effectively throttling FPS
-      let frameTime = UInt64(CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds * 1_000_000_000.0)
-      let lastFrameProcessorCallElapsedTime = frameTime - lastFrameProcessorCall
+      let lastFrameProcessorCallElapsedTime = DispatchTime.now().uptimeNanoseconds - lastFrameProcessorCall.uptimeNanoseconds
       let secondsPerFrame = 1.0 / actualFrameProcessorFps
       let nanosecondsPerFrame = secondsPerFrame * 1_000_000_000.0
-      if lastFrameProcessorCallElapsedTime >= UInt64(nanosecondsPerFrame) {
+
+      if lastFrameProcessorCallElapsedTime > UInt64(nanosecondsPerFrame) {
         if !isRunningFrameProcessor {
           // we're not in the middle of executing the Frame Processor, so prepare for next call.
           CameraQueues.frameProcessorQueue.async {
@@ -229,7 +227,7 @@ extension CameraView: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAud
 
             self.isRunningFrameProcessor = false
           }
-          lastFrameProcessorCall = frameTime
+          lastFrameProcessorCall = DispatchTime.now()
         } else {
           // we're still in the middle of executing a Frame Processor for a previous frame, so a frame was dropped.
           ReactLogger.log(level: .warning, message: "The Frame Processor took so long to execute that a frame was dropped.")

@@ -27,7 +27,7 @@ export type SessionError =
   | 'session/camera-not-ready'
   | 'session/audio-session-setup-failed'
   | 'session/audio-in-use-by-other-app'
-  | 'session/audio-session-failed-to-activate';
+  | 'audio-session-failed-to-activate';
 export type CaptureError =
   | 'capture/invalid-photo-format'
   | 'capture/encoder-error'
@@ -36,13 +36,7 @@ export type CaptureError =
   | 'capture/no-recording-in-progress'
   | 'capture/file-io-error'
   | 'capture/create-temp-file-error'
-  | 'capture/invalid-video-options'
   | 'capture/create-recorder-error'
-  | 'capture/recorder-error'
-  | 'capture/no-valid-data'
-  | 'capture/inactive-source'
-  | 'capture/insufficient-storage'
-  | 'capture/file-size-limit-reached'
   | 'capture/invalid-photo-codec'
   | 'capture/not-bound-error'
   | 'capture/capture-type-not-supported'
@@ -152,14 +146,14 @@ class CameraError<TCode extends CameraErrorCode> extends Error {
 /**
  * Represents any kind of error that occured while trying to capture a video or photo.
  *
- * See the ["Camera Errors" documentation](https://react-native-vision-camera.com/docs/guides/errors) for more information about Camera Errors.
+ * See the ["Camera Errors" documentation](https://mrousavy.github.io/react-native-vision-camera/docs/guides/errors) for more information about Camera Errors.
  */
 export class CameraCaptureError extends CameraError<CaptureError> {}
 
 /**
  * Represents any kind of error that occured in the Camera View Module.
  *
- * See the ["Camera Errors" documentation](https://react-native-vision-camera.com/docs/guides/errors) for more information about Camera Errors.
+ * See the ["Camera Errors" documentation](https://mrousavy.github.io/react-native-vision-camera/docs/guides/errors) for more information about Camera Errors.
  */
 export class CameraRuntimeError extends CameraError<
   PermissionError | ParameterError | DeviceError | FormatError | FrameProcessorError | SessionError | SystemError | UnknownError
